@@ -1,4 +1,4 @@
-# Link Tracker
+# Link Tracker (или ScrapperBot)
 
 Проект сделан в рамках курса Академия Бэкенда.
 
