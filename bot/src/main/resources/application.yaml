@@ -1,0 +1,101 @@
+app:
+  telegram-token: ${TELEGRAM_TOKEN} # env variable
+
+api:
+  scrapper:
+    url: ${SCRAPPER_URL:http://localhost:8081/scrapper/api}
+
+kafka:
+  topic-name: updates
+  retry-attempts: 1
+  group-id: my-group
+
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_URL:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: my-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+  application:
+    name: Bot
+  liquibase:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  cache:
+    type: redis
+    cache-names: bot-cache
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      scrapperCircuitBreaker:
+        sliding-window-type: count_based
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        permitted-number-of-calls-in-half-open-state: 2
+        wait-duration-in-open-state:
+          seconds: 5
+
+  retry:
+    instances:
+      scrapperRetry:
+        max-attempts: 3
+        wait-duration:
+          seconds: 2
+        exponential-backoff-multiplier: 2
+        enable-exponential-backoff: true
+        retry-exceptions:
+          - backend.academy.bot.exception.ScrapperServerException
+        ignore-exceptions:
+          - backend.academy.bot.exception.ScrapperApiException
+
+timeout:
+  read: 10000
+  connection: 5000
+
+
+server:
+  port: 8080
+
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui
+
+logging:
+  structured:
+    format:
+      console: ecs
+
+rate-limit:
+  whitelist: ${SCRAPPER_HOST:127.0.0.1}
+  refill-tokens: 10
+  capacity: 10
+  refill-duration: 60
+
+management:
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  server:
+    port: 8000
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+      path-mapping:
+        prometheus: /metrics
+      base-path: /

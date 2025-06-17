@@ -1,0 +1,112 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+env:
+  REGISTRY: ghcr.io
+  BOT_IMAGE_NAME: mrramir4eg/bot
+  SCRAPPER_IMAGE_NAME: mrramir4eg/scrapper
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    name: Build
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '23'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Set up Maven
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: 3.9.9
+
+      - name: maven build
+        run: mvn clean verify
+
+      - name: Login to GitHub Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata for Docker (Bot)
+        id: meta_bot
+        uses: docker/metadata-action@v5.7.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.BOT_IMAGE_NAME }}
+
+      - name: Extract metadata for Docker (Scrapper)
+        id: meta_scrapper
+        uses: docker/metadata-action@v5.7.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.SCRAPPER_IMAGE_NAME }}
+
+      - name: Build and push Bot Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: bot/
+          file: bot/bot.Dockerfile
+          push: true
+          tags: ${{ steps.meta_bot.outputs.tags }}
+          labels: ${{ steps.meta_bot.outputs.labels }}
+
+      - name: Build and push Scrapper Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: scrapper/
+          file: scrapper/scrapper.Dockerfile
+          push: true
+          tags: ${{ steps.meta_scrapper.outputs.tags }}
+          labels: ${{ steps.meta_scrapper.outputs.labels }}
+
+      - id: jacoco
+        uses: madrapps/jacoco-report@v1.7.1
+        if: ( github.event_name != 'workflow_dispatch' )
+        with:
+          paths: ${{ github.workspace }}/report/target/site/jacoco/jacoco.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 30
+          min-coverage-changed-files: 30
+          title: Code Coverage
+          update-comment: true
+
+  linter:
+    name: linter
+    runs-on: edu-self-hosted
+    container:
+      image: maven:3-eclipse-temurin-24
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '23'
+          distribution: 'temurin'
+          cache: maven
+
+      - run: mvn compile -am spotless:check modernizer:modernizer spotbugs:check pmd:check pmd:cpd-check
+

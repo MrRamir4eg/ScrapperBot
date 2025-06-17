@@ -1,0 +1,22 @@
+{
+    "items": [
+        {
+            "owner": {
+                "account_id": 23674,
+                "reputation": 116750,
+                "user_id": 59501,
+                "user_type": "registered",
+                "accept_rate": 75,
+                "profile_image": "https://www.gravatar.com/avatar/9a657f7990c2dafca9885dee9c647d4e?s=256&d=identicon&r=PG",
+                "display_name": "StaxMan",
+                "link": "https://stackoverflow.com/users/59501/staxman"
+            },
+            "creation_date": 1430337672,
+            "title": "Java lib or app to convert CSV to XML file?",
+            "body": "<p>Jackson processor family has backends for multiple data formats, not just JSON. This includes both XML (<a href=\"https://github.com/FasterXML/jackson-dataformat-xml\" rel=\"noreferrer\">https://github.com/FasterXML/jackson-dataformat-xml</a>) and CSV (<a href=\"https://github.com/FasterXML/jackson-dataformat-csv/\" rel=\"noreferrer\">https://github.com/FasterXML/jackson-dataformat-csv/</a>) backends.</p>\n\n<p>Conversion would rely on reading input with CSV backend, write using XML backend. This is easiest to do if you have (or can define) a POJO for per-row (CSV) entries. This is not a strict requirement, as content from CSV may be read \"untyped\" as well (a sequence of <code>String</code> arrays), but requires bit more work on XML output.</p>\n\n<p>For XML side, you would need a wrapper root object to contain array or <code>List</code> of objects to serialize.</p>\n"
+        }
+    ],
+    "has_more": false,
+    "quota_max": 300,
+    "quota_remaining": 286
+}

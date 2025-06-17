@@ -1,0 +1,14 @@
+app:
+  telegram-token: token
+
+
+api:
+  scrapper:
+    url: http://localhost:9090
+spring:
+  kafka:
+    bootstrap-servers: localhost:65000
+
+
+rate-limit:
+  whitelist:

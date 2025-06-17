@@ -1,0 +1,123 @@
+app:
+  github-token: ${GITHUB_TOKEN} # env variable
+  stackoverflow:
+    key: ${SO_TOKEN_KEY}
+    access-token: ${SO_ACCESS_TOKEN}
+  executor-max-threads: 4
+  message-transport: Kafka
+
+kafka:
+  topic-name: updates
+
+scheduler:
+  fixedDelay: 120000
+  initialDelay: 30000
+
+persistence:
+  type: jdbc
+  batch-size: 50
+
+api:
+  bot:
+    url: ${BOT_URL:http://localhost:8080/bot/api}
+  github:
+    url: https://api.github.com
+  stack-overflow:
+    url: https://api.stackexchange.com/2.3
+
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-type: count_based
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        permitted-number-of-calls-in-half-open-state: 2
+        wait-duration-in-open-state:
+          seconds: 5
+    instances:
+      botCircuitBreaker:
+        base-config: default
+
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration:
+          seconds: 2
+        exponential-backoff-multiplier: 2
+        enable-exponential-backoff: true
+        retry-exceptions:
+          - backend.academy.scrapper.exception.InternalServerException
+    instances:
+      botRetry:
+        base-config: default
+      githubRetry:
+        base-config: default
+      stackoverflowRetry:
+        base-config: default
+
+spring:
+  application:
+    name: Scrapper
+  liquibase:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  datasource:
+    url: jdbc:postgresql://${DB_URL:localhost:5434}/scrapper
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+  kafka:
+    bootstrap-servers: ${KAFKA_URL:localhost:9092}
+    security:
+      protocol: PLAINTEXT
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+server:
+  port: 8081
+
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui
+
+logging:
+  structured:
+    format:
+      console: ecs
+
+rate-limit:
+  whitelist: ${BOT_HOST:127.0.0.1}
+  refill-tokens: 10
+  capacity: 10
+  refill-duration: 60
+
+timeout:
+  read: 5000
+  connection: 5000
+
+management:
+  metrics:
+    distribution:
+      percentiles:
+        all: 0.5,0.95,0.99
+
+    tags:
+      application: ${spring.application.name}
+  server:
+    port: 8001
+  endpoints:
+    web:
+      exposure:
+        include: health, info, prometheus
+      path-mapping:
+        prometheus: /metrics
+      base-path: /
